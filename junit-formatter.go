@@ -102,6 +102,15 @@ func JUnitReportXML(report *parser.Report, noXMLHeader bool, w io.Writer) error 
 				}
 			}
 
+			if test.Result == parser.RACE {
+				ts.Failures++
+				testCase.Failure = &JUnitFailure{
+					Message:  "Failed",
+					Type:     "",
+					Contents: "Race condition detected",
+				}
+			}
+
 			if test.Result == parser.SKIP {
 				testCase.SkipMessage = &JUnitSkipMessage{strings.Join(test.Output, "\n")}
 			}

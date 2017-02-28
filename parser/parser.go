@@ -16,6 +16,7 @@ const (
 	PASS Result = iota
 	FAIL
 	SKIP
+	RACE
 )
 
 // Report is a collection of package tests.
@@ -77,6 +78,7 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 		line := string(l)
 
 		if strings.HasPrefix(line, "=== RUN ") {
+
 			// new test
 			cur = strings.TrimSpace(line[8:])
 			tests = append(tests, &Test{
@@ -84,7 +86,9 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 				Result: FAIL,
 				Output: make([]string, 0),
 			})
+
 		} else if matches := regexResult.FindStringSubmatch(line); len(matches) == 5 {
+
 			if matches[4] != "" {
 				coveragePct = matches[4]
 			}
@@ -101,7 +105,9 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 			coveragePct = ""
 			cur = ""
 			testsTime = 0
+
 		} else if matches := regexStatus.FindStringSubmatch(line); len(matches) == 4 {
+
 			cur = matches[2]
 			test := findTest(tests, cur)
 			if test == nil {
@@ -109,7 +115,9 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 			}
 
 			// test status
-			if matches[1] == "PASS" {
+			if test.Result == RACE {
+				//race condition detected, we want to fail it even if unit-test indicates otherwise
+			} else if matches[1] == "PASS" {
 				test.Result = PASS
 			} else if matches[1] == "SKIP" {
 				test.Result = SKIP
@@ -121,15 +129,25 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 			testTime := parseTime(matches[3]) * 10
 			test.Time = testTime
 			testsTime += testTime
+
 		} else if matches := regexCoverage.FindStringSubmatch(line); len(matches) == 2 {
+
 			coveragePct = matches[1]
 		} else if strings.HasPrefix(line, "\t") {
+
 			// test output
 			test := findTest(tests, cur)
 			if test == nil {
 				continue
 			}
 			test.Output = append(test.Output, line[1:])
+		} else if strings.HasPrefix(line, "WARNING: DATA RACE") {
+
+			test := findTest(tests, cur)
+			if test == nil {
+				continue
+			}
+			test.Result = RACE
 		}
 	}
 
