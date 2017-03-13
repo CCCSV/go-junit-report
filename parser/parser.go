@@ -148,6 +148,16 @@ func Parse(r io.Reader, pkgName string) (*Report, error) {
 				continue
 			}
 			test.Result = RACE
+		} else if strings.HasSuffix(line, "[build failed]") {
+			t := &Test{
+				Name:   "Build Failed",
+				Result: FAIL,
+				Output: make([]string, 0),
+			}
+			t.Output = append(t.Output, line)
+
+			tests = append(tests, t)
+
 		}
 	}
 
