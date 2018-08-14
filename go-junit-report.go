@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Comcast/go-junit-report/parser"
+	"github.com/CCCSV/go-junit-report/parser"
 )
 
 var (
